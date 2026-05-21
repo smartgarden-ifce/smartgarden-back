@@ -20,7 +20,7 @@ public class DeviceService {
 
     @Transactional(readOnly = true)
     public List<DeviceResponse> listDevices() {
-        return deviceRepository.findAll().stream()
+        return deviceRepository.findAllByOrderByNameAsc().stream()
                 .map(DeviceResponse::fromEntity)
                 .toList();
     }
@@ -56,5 +56,19 @@ public class DeviceService {
                     return deviceRepository.save(device);
                 });
     }
-}
 
+    @Transactional(readOnly = true)
+    public long countDevices() {
+        return deviceRepository.count();
+    }
+
+    @Transactional(readOnly = true)
+    public long countActiveDevices() {
+        return deviceRepository.countByActiveTrue();
+    }
+
+    @Transactional(readOnly = true)
+    public List<Device> listDeviceEntities() {
+        return deviceRepository.findAllByOrderByNameAsc();
+    }
+}

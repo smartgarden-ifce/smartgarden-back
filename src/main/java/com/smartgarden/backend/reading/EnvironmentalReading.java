@@ -10,6 +10,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 
 import java.math.BigDecimal;
@@ -38,6 +39,12 @@ public class EnvironmentalReading {
 
     @Column(name = "received_at", nullable = false, updatable = false)
     private OffsetDateTime receivedAt;
+
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private OffsetDateTime createdAt;
+
+    @Column(name = "updated_at", nullable = false)
+    private OffsetDateTime updatedAt;
 
     public Long getId() {
         return id;
@@ -79,9 +86,24 @@ public class EnvironmentalReading {
         return receivedAt;
     }
 
+    public OffsetDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public OffsetDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
     @PrePersist
     void onCreate() {
-        this.receivedAt = OffsetDateTime.now();
+        OffsetDateTime now = OffsetDateTime.now();
+        this.receivedAt = now;
+        this.createdAt = now;
+        this.updatedAt = now;
+    }
+
+    @PreUpdate
+    void onUpdate() {
+        this.updatedAt = OffsetDateTime.now();
     }
 }
-

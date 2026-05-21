@@ -1,6 +1,7 @@
 package com.smartgarden.backend.common;
 
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -27,6 +28,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ResourceAlreadyExistsException.class)
     public ResponseEntity<ApiErrorResponse> handleConflict(ResourceAlreadyExistsException exception) {
         return buildResponse(HttpStatus.CONFLICT, List.of(exception.getMessage()));
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ApiErrorResponse> handleConstraintViolation(ConstraintViolationException exception) {
+        List<String> messages = exception.getConstraintViolations()
+                .stream()
+                .map(violation -> violation.getPropertyPath() + ": " + violation.getMessage())
+                .toList();
+
+        return buildResponse(HttpStatus.BAD_REQUEST, messages);
     }
 
     @ExceptionHandler(EntityNotFoundException.class)

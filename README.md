@@ -15,7 +15,9 @@ Nesta primeira etapa, o ESP32 envia leituras de temperatura e umidade do ar para
 - Spring Web
 - Spring Data JPA
 - PostgreSQL
+- Flyway
 - Bean Validation
+- SpringDoc OpenAPI / Swagger UI
 
 ## Como subir o banco local
 
@@ -30,6 +32,15 @@ Isso cria um PostgreSQL local com:
 - banco: `smartgarden`
 - usuário: `smartgarden`
 - senha: `smartgarden`
+
+## Migrações de banco
+
+O schema agora é versionado com `Flyway`.
+
+- scripts: `src/main/resources/db/migration`
+- estratégia JPA: `ddl-auto=validate`
+
+Em banco vazio, o Flyway cria toda a estrutura. Em banco já existente, a opção `baseline-on-migrate` evita conflito com schema legado e permite passar a controlar as próximas mudanças por migração.
 
 ## Como rodar a aplicação
 
@@ -102,17 +113,67 @@ Se o dispositivo ainda não existir, ele é criado automaticamente com nome padr
 Filtros disponíveis:
 
 - `deviceCode`
-- `limit`
+- `page`
+- `size`
 - `startAt`
 - `endAt`
 
 Exemplo:
 
-`GET /api/readings?deviceCode=esp32-jardim-bloco-a&limit=20`
+`GET /api/readings?deviceCode=esp32-jardim-bloco-a&page=0&size=20`
+
+Exemplo de resposta:
+
+```json
+{
+  "content": [
+    {
+      "id": 2,
+      "deviceId": 1,
+      "deviceCode": "esp32-jardim-bloco-a",
+      "deviceName": "ESP32 Jardim Bloco A",
+      "temperatureC": 31.9,
+      "humidityPercent": 64.6,
+      "recordedAt": "2026-05-21T12:16:53.231716916Z",
+      "receivedAt": "2026-05-21T12:16:53.235524803Z",
+      "createdAt": "2026-05-21T12:16:53.235524803Z",
+      "updatedAt": "2026-05-21T12:16:53.235524803Z"
+    }
+  ],
+  "page": 0,
+  "size": 20,
+  "totalElements": 1,
+  "totalPages": 1,
+  "first": true,
+  "last": true
+}
+```
 
 ### Última leitura de um dispositivo
 
 `GET /api/readings/latest?deviceCode=esp32-jardim-bloco-a`
+
+### Resumo para dashboard
+
+`GET /api/dashboard/summary`
+
+Parâmetros:
+
+- `hours`: janela de agregação em horas, entre `1` e `168`
+
+Exemplo:
+
+`GET /api/dashboard/summary?hours=24`
+
+Esse endpoint retorna:
+
+- total de dispositivos
+- total de dispositivos ativos
+- total de leituras
+- leituras dentro da janela
+- média de temperatura na janela
+- média de umidade na janela
+- última leitura conhecida por dispositivo
 
 ## Exemplo de envio pelo ESP32
 

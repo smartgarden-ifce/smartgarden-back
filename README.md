@@ -131,5 +131,3 @@ Quando você migrar do monitor serial para Wi-Fi + HTTP, o ESP32 pode enviar um 
 Depois que esse fluxo estiver estável, a evolução para MQTT fica mais limpa:
 
 `ESP32 -> MQTT Broker -> Spring Boot -> PostgreSQL -> Angular`
-
-Nessa fase, você pode manter a mesma modelagem de banco e trocar apenas o mecanismo de ingestão.

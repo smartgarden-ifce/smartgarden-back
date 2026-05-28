@@ -26,7 +26,9 @@ public record DashboardSummaryResponse(
         BigDecimal averageTemperatureCInWindow,
         @Schema(example = "62.17")
         BigDecimal averageHumidityPercentInWindow,
+        @Schema(example = "2")
+        int activeAlertCount,
+        List<DashboardAlertResponse> alerts,
         List<DeviceLatestReadingSummaryResponse> latestReadingsByDevice
 ) {
 }
-

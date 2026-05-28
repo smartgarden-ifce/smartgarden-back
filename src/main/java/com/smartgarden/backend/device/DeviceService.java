@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class DeviceService {
@@ -70,5 +71,10 @@ public class DeviceService {
     @Transactional(readOnly = true)
     public List<Device> listDeviceEntities() {
         return deviceRepository.findAllByOrderByNameAsc();
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<Device> findByCode(String deviceCode) {
+        return deviceRepository.findByDeviceCode(deviceCode);
     }
 }

@@ -3,6 +3,7 @@ package com.smartgarden.backend.reading;
 import com.smartgarden.backend.common.ApiErrorResponse;
 import com.smartgarden.backend.common.PageResponse;
 import com.smartgarden.backend.reading.dto.CreateReadingRequest;
+import com.smartgarden.backend.reading.dto.ReadingHistoryResponse;
 import com.smartgarden.backend.reading.dto.ReadingResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -76,5 +77,21 @@ public class EnvironmentalReadingController {
     )
     public ReadingResponse getLatestReading(@RequestParam String deviceCode) {
         return readingService.getLatestReading(deviceCode);
+    }
+
+    @GetMapping("/history")
+    @Operation(summary = "Buscar histórico para gráfico", description = "Retorna a série histórica de leituras de um dispositivo em um período.")
+    public ReadingHistoryResponse getReadingHistory(
+            @RequestParam String deviceCode,
+            @RequestParam(defaultValue = "24")
+            @Parameter(description = "Janela de horas usada quando startAt nao for informado", example = "24")
+            @Min(1) @Max(168) int hours,
+            @RequestParam(defaultValue = "120")
+            @Parameter(description = "Quantidade maxima de pontos retornados", example = "120")
+            @Min(2) @Max(500) int limit,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime startAt,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime endAt
+    ) {
+        return readingService.getReadingHistory(deviceCode, hours, limit, startAt, endAt);
     }
 }

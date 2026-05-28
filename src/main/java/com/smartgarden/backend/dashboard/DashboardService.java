@@ -1,6 +1,7 @@
 package com.smartgarden.backend.dashboard;
 
 import com.smartgarden.backend.dashboard.dto.DashboardSummaryResponse;
+import com.smartgarden.backend.dashboard.dto.DashboardAlertResponse;
 import com.smartgarden.backend.dashboard.dto.DeviceLatestReadingSummaryResponse;
 import com.smartgarden.backend.device.Device;
 import com.smartgarden.backend.device.DeviceService;
@@ -13,12 +14,21 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
 public class DashboardService {
+
+    private static final BigDecimal HIGH_TEMPERATURE_THRESHOLD = BigDecimal.valueOf(30);
+    private static final BigDecimal LOW_TEMPERATURE_THRESHOLD = BigDecimal.valueOf(20);
+    private static final BigDecimal LOW_HUMIDITY_THRESHOLD = BigDecimal.valueOf(40);
+    private static final BigDecimal HIGH_HUMIDITY_THRESHOLD = BigDecimal.valueOf(70);
+    private static final long OFFLINE_MINUTES_THRESHOLD = 15;
 
     private final DeviceService deviceService;
     private final EnvironmentalReadingRepository readingRepository;
@@ -40,6 +50,8 @@ public class DashboardService {
                 .map(device -> toLatestReadingSummary(device, latestByDeviceId.get(device.getId())))
                 .toList();
 
+        List<DashboardAlertResponse> alerts = buildAlerts(generatedAt, latestReadings);
+
         return new DashboardSummaryResponse(
                 generatedAt,
                 windowStart,
@@ -50,6 +62,8 @@ public class DashboardService {
                 readingRepository.countByRecordedAtGreaterThanEqual(windowStart),
                 round(readingRepository.averageTemperatureSince(windowStart)),
                 round(readingRepository.averageHumiditySince(windowStart)),
+                alerts.size(),
+                alerts,
                 latestReadings
         );
     }
@@ -72,5 +86,79 @@ public class DashboardService {
         }
         return BigDecimal.valueOf(value).setScale(2, RoundingMode.HALF_UP);
     }
-}
 
+    private List<DashboardAlertResponse> buildAlerts(
+            OffsetDateTime generatedAt,
+            List<DeviceLatestReadingSummaryResponse> latestReadings
+    ) {
+        List<DashboardAlertResponse> alerts = new ArrayList<>();
+
+        for (DeviceLatestReadingSummaryResponse device : latestReadings) {
+            if (device.lastSeenAt() == null || device.lastSeenAt().isBefore(generatedAt.minusMinutes(OFFLINE_MINUTES_THRESHOLD))) {
+                alerts.add(new DashboardAlertResponse(
+                        "SENSOR_OFFLINE",
+                        "critical",
+                        "Sensor sem comunicação recente",
+                        "%s está sem enviar leituras há mais de %d minutos.".formatted(device.deviceName(), OFFLINE_MINUTES_THRESHOLD),
+                        device.deviceCode(),
+                        device.deviceName()
+                ));
+            }
+
+            if (device.latestReading() == null) {
+                continue;
+            }
+
+            BigDecimal temperature = device.latestReading().temperatureC();
+            BigDecimal humidity = device.latestReading().humidityPercent();
+
+            if (temperature.compareTo(HIGH_TEMPERATURE_THRESHOLD) >= 0) {
+                alerts.add(new DashboardAlertResponse(
+                        "TEMPERATURE_HIGH",
+                        "warning",
+                        "Temperatura acima da faixa",
+                        "%s registrou %s °C.".formatted(device.deviceName(), temperature),
+                        device.deviceCode(),
+                        device.deviceName()
+                ));
+            } else if (temperature.compareTo(LOW_TEMPERATURE_THRESHOLD) <= 0) {
+                alerts.add(new DashboardAlertResponse(
+                        "TEMPERATURE_LOW",
+                        "info",
+                        "Temperatura abaixo da faixa",
+                        "%s registrou %s °C.".formatted(device.deviceName(), temperature),
+                        device.deviceCode(),
+                        device.deviceName()
+                ));
+            }
+
+            if (humidity.compareTo(LOW_HUMIDITY_THRESHOLD) < 0) {
+                alerts.add(new DashboardAlertResponse(
+                        "HUMIDITY_LOW",
+                        "warning",
+                        "Umidade abaixo da faixa",
+                        "%s registrou %s%% de umidade.".formatted(device.deviceName(), humidity),
+                        device.deviceCode(),
+                        device.deviceName()
+                ));
+            } else if (humidity.compareTo(HIGH_HUMIDITY_THRESHOLD) > 0) {
+                alerts.add(new DashboardAlertResponse(
+                        "HUMIDITY_HIGH",
+                        "warning",
+                        "Umidade acima da faixa",
+                        "%s registrou %s%% de umidade.".formatted(device.deviceName(), humidity),
+                        device.deviceCode(),
+                        device.deviceName()
+                ));
+            }
+        }
+
+        return alerts.stream()
+                .sorted(Comparator.comparingInt(alert -> switch (alert.severity()) {
+                    case "critical" -> 0;
+                    case "warning" -> 1;
+                    default -> 2;
+                }))
+                .toList();
+    }
+}

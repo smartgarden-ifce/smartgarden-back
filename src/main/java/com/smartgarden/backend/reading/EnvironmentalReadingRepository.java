@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.domain.Sort;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -19,6 +20,10 @@ public interface EnvironmentalReadingRepository extends JpaRepository<Environmen
             Specification<EnvironmentalReading> specification,
             org.springframework.data.domain.Pageable pageable
     );
+
+    @Override
+    @EntityGraph(attributePaths = "device")
+    List<EnvironmentalReading> findAll(Specification<EnvironmentalReading> specification, Sort sort);
 
     Optional<EnvironmentalReading> findFirstByDeviceDeviceCodeOrderByRecordedAtDesc(String deviceCode);
 

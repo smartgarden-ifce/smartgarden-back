@@ -4,6 +4,7 @@ import com.smartgarden.backend.common.PageResponse;
 import com.smartgarden.backend.device.Device;
 import com.smartgarden.backend.device.DeviceService;
 import com.smartgarden.backend.reading.dto.CreateReadingRequest;
+import com.smartgarden.backend.reading.dto.ReadingHistoryResponse;
 import com.smartgarden.backend.reading.dto.ReadingResponse;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.data.domain.Page;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 
 @Service
 public class EnvironmentalReadingService {
@@ -73,6 +75,51 @@ public class EnvironmentalReadingService {
         EnvironmentalReading reading = readingRepository.findFirstByDeviceDeviceCodeOrderByRecordedAtDesc(deviceCode)
                 .orElseThrow(() -> new EntityNotFoundException("Nenhuma leitura encontrada para o dispositivo informado."));
         return ReadingResponse.fromEntity(reading);
+    }
+
+    @Transactional(readOnly = true)
+    public ReadingHistoryResponse getReadingHistory(
+            String deviceCode,
+            int hours,
+            int limit,
+            OffsetDateTime startAt,
+            OffsetDateTime endAt
+    ) {
+        if (deviceCode == null || deviceCode.isBlank()) {
+            throw new EntityNotFoundException("Informe o deviceCode para consultar o histórico.");
+        }
+
+        OffsetDateTime windowEnd = endAt != null ? endAt : OffsetDateTime.now();
+        OffsetDateTime windowStart = startAt != null ? startAt : windowEnd.minusHours(Math.max(hours, 1));
+        int sanitizedLimit = Math.min(Math.max(limit, 2), 500);
+
+        Specification<EnvironmentalReading> specification = Specification.allOf(
+                hasDeviceCode(deviceCode),
+                recordedAtGreaterThanOrEqualTo(windowStart),
+                recordedAtLessThanOrEqualTo(windowEnd)
+        );
+
+        List<EnvironmentalReading> history = readingRepository.findAll(
+                specification,
+                Sort.by(Sort.Direction.ASC, "recordedAt")
+        );
+
+        List<ReadingResponse> points = history.stream()
+                .map(ReadingResponse::fromEntity)
+                .skip(Math.max(0, history.size() - sanitizedLimit))
+                .toList();
+
+        String deviceName = points.isEmpty()
+                ? deviceService.findByCode(deviceCode).map(Device::getName).orElse(deviceCode)
+                : points.get(0).deviceName();
+        return new ReadingHistoryResponse(
+                deviceCode,
+                deviceName,
+                windowStart,
+                windowEnd,
+                points.size(),
+                points
+        );
     }
 
     private Specification<EnvironmentalReading> hasDeviceCode(String deviceCode) {

@@ -153,6 +153,20 @@ Exemplo de resposta:
 
 `GET /api/readings/latest?deviceCode=esp32-jardim-bloco-a`
 
+### Histórico para gráfico
+
+`GET /api/readings/history?deviceCode=esp32-jardim-bloco-a&hours=24&limit=120`
+
+Parâmetros:
+
+- `deviceCode`: obrigatório
+- `hours`: janela em horas quando `startAt` não for informado
+- `limit`: quantidade máxima de pontos retornados
+- `startAt`
+- `endAt`
+
+Esse endpoint retorna a série histórica já ordenada por `recordedAt`, pronta para alimentar o gráfico do dashboard.
+
 ### Resumo para dashboard
 
 `GET /api/dashboard/summary`
@@ -173,6 +187,8 @@ Esse endpoint retorna:
 - leituras dentro da janela
 - média de temperatura na janela
 - média de umidade na janela
+- total de alertas ativos
+- lista de alertas calculados
 - última leitura conhecida por dispositivo
 
 ## Exemplo de envio pelo ESP32

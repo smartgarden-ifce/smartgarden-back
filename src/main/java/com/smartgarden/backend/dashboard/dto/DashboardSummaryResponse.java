@@ -1,5 +1,6 @@
 package com.smartgarden.backend.dashboard.dto;
 
+import com.smartgarden.backend.environment.dto.EnvironmentalCriteriaResponse;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.math.BigDecimal;
@@ -29,6 +30,7 @@ public record DashboardSummaryResponse(
         @Schema(example = "2")
         int activeAlertCount,
         List<DashboardAlertResponse> alerts,
-        List<DeviceLatestReadingSummaryResponse> latestReadingsByDevice
+        List<DeviceLatestReadingSummaryResponse> latestReadingsByDevice,
+        EnvironmentalCriteriaResponse criteria
 ) {
 }

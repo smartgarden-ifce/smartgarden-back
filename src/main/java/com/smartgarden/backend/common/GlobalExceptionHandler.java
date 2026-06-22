@@ -45,6 +45,11 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.NOT_FOUND, List.of(exception.getMessage()));
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiErrorResponse> handleBadRequest(IllegalArgumentException exception) {
+        return buildResponse(HttpStatus.BAD_REQUEST, List.of(exception.getMessage()));
+    }
+
     private ResponseEntity<ApiErrorResponse> buildResponse(HttpStatus status, List<String> messages) {
         ApiErrorResponse body = new ApiErrorResponse(
                 OffsetDateTime.now(),

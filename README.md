@@ -190,6 +190,41 @@ Esse endpoint retorna:
 - total de alertas ativos
 - lista de alertas calculados
 - última leitura conhecida por dispositivo
+- critérios ambientais globais usados nos diagnósticos
+
+### Relatório ambiental
+
+`GET /api/reports/environmental`
+
+Parâmetros obrigatórios:
+
+- `deviceCode`: código do dispositivo
+- `startAt`: início do período em ISO 8601
+- `endAt`: fim do período em ISO 8601
+
+O período deve ter no máximo 31 dias. Exemplo:
+
+`GET /api/reports/environmental?deviceCode=esp32-jardim-bloco-a&startAt=2026-05-01T00:00:00-03:00&endAt=2026-05-08T00:00:00-03:00`
+
+O relatório é calculado sob demanda e retorna:
+
+- médias, mínimos e máximos de temperatura e umidade
+- quantidade e percentual de leituras ambientalmente adequadas
+- série temporal agregada em até 120 pontos
+- total de exceções e as 50 ocorrências mais recentes fora das faixas
+- critérios ambientais usados no cálculo
+
+## Critérios ambientais
+
+As faixas são globais e os limites são inclusivos:
+
+- temperatura agradável: de 20 °C a 30 °C
+- temperatura fria: abaixo de 20 °C
+- temperatura quente: acima de 30 °C
+- umidade normal: de 40% a 70%
+- umidade baixa: abaixo de 40%
+- umidade alta: acima de 70%
+- ambiente adequado: temperatura e umidade simultaneamente dentro das faixas
 
 ## Exemplo de envio pelo ESP32
 

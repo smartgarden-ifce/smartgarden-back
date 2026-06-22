@@ -5,6 +5,7 @@ import com.smartgarden.backend.dashboard.dto.DashboardAlertResponse;
 import com.smartgarden.backend.dashboard.dto.DeviceLatestReadingSummaryResponse;
 import com.smartgarden.backend.device.Device;
 import com.smartgarden.backend.device.DeviceService;
+import com.smartgarden.backend.environment.EnvironmentalCriteriaService;
 import com.smartgarden.backend.reading.EnvironmentalReading;
 import com.smartgarden.backend.reading.EnvironmentalReadingRepository;
 import com.smartgarden.backend.reading.dto.ReadingResponse;
@@ -24,18 +25,20 @@ import java.util.stream.Collectors;
 @Service
 public class DashboardService {
 
-    private static final BigDecimal HIGH_TEMPERATURE_THRESHOLD = BigDecimal.valueOf(30);
-    private static final BigDecimal LOW_TEMPERATURE_THRESHOLD = BigDecimal.valueOf(20);
-    private static final BigDecimal LOW_HUMIDITY_THRESHOLD = BigDecimal.valueOf(40);
-    private static final BigDecimal HIGH_HUMIDITY_THRESHOLD = BigDecimal.valueOf(70);
     private static final long OFFLINE_MINUTES_THRESHOLD = 15;
 
     private final DeviceService deviceService;
     private final EnvironmentalReadingRepository readingRepository;
+    private final EnvironmentalCriteriaService criteriaService;
 
-    public DashboardService(DeviceService deviceService, EnvironmentalReadingRepository readingRepository) {
+    public DashboardService(
+            DeviceService deviceService,
+            EnvironmentalReadingRepository readingRepository,
+            EnvironmentalCriteriaService criteriaService
+    ) {
         this.deviceService = deviceService;
         this.readingRepository = readingRepository;
+        this.criteriaService = criteriaService;
     }
 
     @Transactional(readOnly = true)
@@ -64,7 +67,8 @@ public class DashboardService {
                 round(readingRepository.averageHumiditySince(windowStart)),
                 alerts.size(),
                 alerts,
-                latestReadings
+                latestReadings,
+                criteriaService.getCriteria()
         );
     }
 
@@ -112,7 +116,7 @@ public class DashboardService {
             BigDecimal temperature = device.latestReading().temperatureC();
             BigDecimal humidity = device.latestReading().humidityPercent();
 
-            if (temperature.compareTo(HIGH_TEMPERATURE_THRESHOLD) >= 0) {
+            if (temperature.compareTo(EnvironmentalCriteriaService.TEMPERATURE_MAX_C) > 0) {
                 alerts.add(new DashboardAlertResponse(
                         "TEMPERATURE_HIGH",
                         "warning",
@@ -121,7 +125,7 @@ public class DashboardService {
                         device.deviceCode(),
                         device.deviceName()
                 ));
-            } else if (temperature.compareTo(LOW_TEMPERATURE_THRESHOLD) <= 0) {
+            } else if (temperature.compareTo(EnvironmentalCriteriaService.TEMPERATURE_MIN_C) < 0) {
                 alerts.add(new DashboardAlertResponse(
                         "TEMPERATURE_LOW",
                         "info",
@@ -132,7 +136,7 @@ public class DashboardService {
                 ));
             }
 
-            if (humidity.compareTo(LOW_HUMIDITY_THRESHOLD) < 0) {
+            if (humidity.compareTo(EnvironmentalCriteriaService.HUMIDITY_MIN_PERCENT) < 0) {
                 alerts.add(new DashboardAlertResponse(
                         "HUMIDITY_LOW",
                         "warning",
@@ -141,7 +145,7 @@ public class DashboardService {
                         device.deviceCode(),
                         device.deviceName()
                 ));
-            } else if (humidity.compareTo(HIGH_HUMIDITY_THRESHOLD) > 0) {
+            } else if (humidity.compareTo(EnvironmentalCriteriaService.HUMIDITY_MAX_PERCENT) > 0) {
                 alerts.add(new DashboardAlertResponse(
                         "HUMIDITY_HIGH",
                         "warning",

@@ -24,9 +24,11 @@ O ESP32 publica telemetria com QoS 1. O backend consome, valida, persiste e noti
 
 ## Como subir PostgreSQL e Mosquitto
 
-Na pasta `smartgarden-back`, execute:
+A infraestrutura foi separada no repositório `smartgarden-infra`. No primeiro uso:
 
 ```bash
+cd ../smartgarden-infra
+cp .env.example .env
 docker compose up -d
 ```
 
@@ -39,7 +41,7 @@ Isso cria o PostgreSQL e o broker MQTT. Credenciais locais:
 - MQTT usuário: `smartgarden`
 - MQTT senha: `smartgarden_mqtt`
 
-As credenciais são exclusivas para desenvolvimento local. O broker aceita o tópico `smartgarden/devices/+/telemetry`.
+As credenciais são exclusivas para desenvolvimento local. O broker aceita o tópico `smartgarden/devices/+/telemetry`. Consulte o README do repositório de infraestrutura para configuração e migração dos volumes.
 
 ## Migrações de banco
 

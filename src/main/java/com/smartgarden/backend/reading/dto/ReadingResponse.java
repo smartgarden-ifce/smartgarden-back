@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.UUID;
 
 public record ReadingResponse(
         @Schema(example = "2")
@@ -15,6 +16,8 @@ public record ReadingResponse(
         String deviceCode,
         @Schema(example = "ESP32 Jardim Bloco A")
         String deviceName,
+        @Schema(example = "9d892fe8-d62a-4bd9-a0cc-a4c70f78271e", nullable = true)
+        UUID messageId,
         @Schema(example = "31.90")
         BigDecimal temperatureC,
         @Schema(example = "64.60")
@@ -35,6 +38,7 @@ public record ReadingResponse(
                 entity.getDevice().getId(),
                 entity.getDevice().getDeviceCode(),
                 entity.getDevice().getName(),
+                entity.getMessageId(),
                 entity.getTemperatureC(),
                 entity.getHumidityPercent(),
                 entity.getRecordedAt(),

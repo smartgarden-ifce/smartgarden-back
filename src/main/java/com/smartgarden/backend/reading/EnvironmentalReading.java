@@ -15,6 +15,7 @@ import jakarta.persistence.Table;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.UUID;
 
 @Entity
 @Table(name = "environmental_readings")
@@ -33,6 +34,9 @@ public class EnvironmentalReading {
 
     @Column(name = "humidity_percent", nullable = false, precision = 5, scale = 2)
     private BigDecimal humidityPercent;
+
+    @Column(name = "message_id", unique = true)
+    private UUID messageId;
 
     @Column(name = "recorded_at", nullable = false)
     private OffsetDateTime recordedAt;
@@ -72,6 +76,14 @@ public class EnvironmentalReading {
 
     public void setHumidityPercent(BigDecimal humidityPercent) {
         this.humidityPercent = humidityPercent;
+    }
+
+    public UUID getMessageId() {
+        return messageId;
+    }
+
+    public void setMessageId(UUID messageId) {
+        this.messageId = messageId;
     }
 
     public OffsetDateTime getRecordedAt() {

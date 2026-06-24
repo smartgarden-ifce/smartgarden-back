@@ -1,12 +1,12 @@
 # SmartGarden Back
 
-Backend inicial do projeto SmartGarden usando `Java 21`, `Spring Boot`, `PostgreSQL` e API REST para receber leituras do ESP32.
+Backend do SmartGarden usando `Java 21`, `Spring Boot`, `PostgreSQL`, MQTT, REST e SSE.
 
 ## Arquitetura desta fase
 
-`ESP32 -> HTTP/REST -> Spring Boot -> PostgreSQL -> Angular`
+`ESP32 -> MQTT -> Mosquitto -> Spring Boot -> PostgreSQL`
 
-Nesta primeira etapa, o ESP32 envia leituras de temperatura e umidade do ar para o backend por HTTP. O backend persiste os dados no PostgreSQL e expõe endpoints para consulta no frontend.
+O ESP32 publica telemetria com QoS 1. O backend consome, valida, persiste e notifica o Angular por SSE. REST continua disponível para consultas, relatórios e ingestão compatível.
 
 ## Stack
 
@@ -18,8 +18,11 @@ Nesta primeira etapa, o ESP32 envia leituras de temperatura e umidade do ar para
 - Flyway
 - Bean Validation
 - SpringDoc OpenAPI / Swagger UI
+- Spring Integration MQTT / Eclipse Paho
+- Eclipse Mosquitto 2
+- Server-Sent Events
 
-## Como subir o banco local
+## Como subir PostgreSQL e Mosquitto
 
 Na pasta `smartgarden-back`, execute:
 
@@ -27,11 +30,16 @@ Na pasta `smartgarden-back`, execute:
 docker compose up -d
 ```
 
-Isso cria um PostgreSQL local com:
+Isso cria o PostgreSQL e o broker MQTT. Credenciais locais:
 
 - banco: `smartgarden`
 - usuário: `smartgarden`
 - senha: `smartgarden`
+- MQTT host/porta: `localhost:1883`
+- MQTT usuário: `smartgarden`
+- MQTT senha: `smartgarden_mqtt`
+
+As credenciais são exclusivas para desenvolvimento local. O broker aceita o tópico `smartgarden/devices/+/telemetry`.
 
 ## Migrações de banco
 
@@ -54,6 +62,9 @@ Se quiser sobrescrever a conexão:
 export SMARTGARDEN_DB_URL=jdbc:postgresql://localhost:5432/smartgarden
 export SMARTGARDEN_DB_USERNAME=smartgarden
 export SMARTGARDEN_DB_PASSWORD=smartgarden
+export SMARTGARDEN_MQTT_BROKER_URL=tcp://localhost:1883
+export SMARTGARDEN_MQTT_USERNAME=smartgarden
+export SMARTGARDEN_MQTT_PASSWORD=smartgarden_mqtt
 mvn spring-boot:run
 ```
 
@@ -100,11 +111,33 @@ Exemplo de body:
   "deviceCode": "esp32-jardim-bloco-a",
   "temperatureC": 27.4,
   "humidityPercent": 63.1,
-  "recordedAt": "2026-05-21T14:30:00Z"
+  "recordedAt": "2026-05-21T14:30:00Z",
+  "messageId": "9d892fe8-d62a-4bd9-a0cc-a4c70f78271e"
 }
 ```
 
-Se o dispositivo ainda não existir, ele é criado automaticamente com nome padrão.
+`messageId` é opcional no REST. Quando informado, torna a operação idempotente. Se o dispositivo ainda não existir, ele é criado automaticamente com nome padrão.
+
+### Acompanhar leituras em tempo real
+
+`GET /api/events/readings`
+
+Use `deviceCode` para filtrar um dispositivo. O endpoint SSE envia os eventos `connected`, `reading-created` e `heartbeat`.
+
+## Contrato MQTT
+
+Tópico: `smartgarden/devices/{deviceCode}/telemetry`
+
+```json
+{
+  "messageId": "9d892fe8-d62a-4bd9-a0cc-a4c70f78271e",
+  "temperatureC": 27.4,
+  "humidityPercent": 63.1,
+  "recordedAt": null
+}
+```
+
+O backend extrai `deviceCode` do tópico. `messageId` é obrigatório no MQTT e impede duplicação causada por retransmissões QoS 1. Se `recordedAt` for nulo, é usado o horário do backend.
 
 ### Listar leituras
 
@@ -132,6 +165,7 @@ Exemplo de resposta:
       "deviceId": 1,
       "deviceCode": "esp32-jardim-bloco-a",
       "deviceName": "ESP32 Jardim Bloco A",
+      "messageId": "9d892fe8-d62a-4bd9-a0cc-a4c70f78271e",
       "temperatureC": 31.9,
       "humidityPercent": 64.6,
       "recordedAt": "2026-05-21T12:16:53.231716916Z",
@@ -225,21 +259,3 @@ As faixas são globais e os limites são inclusivos:
 - umidade baixa: abaixo de 40%
 - umidade alta: acima de 70%
 - ambiente adequado: temperatura e umidade simultaneamente dentro das faixas
-
-## Exemplo de envio pelo ESP32
-
-Quando você migrar do monitor serial para Wi-Fi + HTTP, o ESP32 pode enviar um JSON neste formato:
-
-```json
-{
-  "deviceCode": "esp32-jardim-bloco-a",
-  "temperatureC": 26.8,
-  "humidityPercent": 61.5
-}
-```
-
-## Próximo passo natural
-
-Depois que esse fluxo estiver estável, a evolução para MQTT fica mais limpa:
-
-`ESP32 -> MQTT Broker -> Spring Boot -> PostgreSQL -> Angular`

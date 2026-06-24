@@ -9,6 +9,7 @@ import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.UUID;
 
 public record CreateReadingRequest(
         @Schema(description = "Codigo unico do dispositivo ESP32", example = "esp32-jardim-bloco-a")
@@ -29,6 +30,9 @@ public record CreateReadingRequest(
         BigDecimal humidityPercent,
 
         @Schema(description = "Momento em que a leitura foi capturada no dispositivo. Se omitido, o backend usa o horario atual.", example = "2026-05-21T14:30:00Z")
-        OffsetDateTime recordedAt
+        OffsetDateTime recordedAt,
+
+        @Schema(description = "Identificador idempotente da mensagem. Opcional para clientes REST.", example = "9d892fe8-d62a-4bd9-a0cc-a4c70f78271e")
+        UUID messageId
 ) {
 }

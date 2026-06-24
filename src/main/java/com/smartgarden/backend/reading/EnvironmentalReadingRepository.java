@@ -10,6 +10,7 @@ import org.springframework.data.domain.Sort;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 public interface EnvironmentalReadingRepository extends JpaRepository<EnvironmentalReading, Long>,
         JpaSpecificationExecutor<EnvironmentalReading> {
@@ -26,6 +27,9 @@ public interface EnvironmentalReadingRepository extends JpaRepository<Environmen
     List<EnvironmentalReading> findAll(Specification<EnvironmentalReading> specification, Sort sort);
 
     Optional<EnvironmentalReading> findFirstByDeviceDeviceCodeOrderByRecordedAtDesc(String deviceCode);
+
+    @EntityGraph(attributePaths = "device")
+    Optional<EnvironmentalReading> findByMessageId(UUID messageId);
 
     @Query("""
             select distinct r

@@ -7,6 +7,7 @@ import com.smartgarden.backend.reading.dto.CreateReadingRequest;
 import com.smartgarden.backend.reading.dto.ReadingHistoryResponse;
 import com.smartgarden.backend.reading.dto.ReadingResponse;
 import jakarta.persistence.EntityNotFoundException;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -22,14 +23,27 @@ public class EnvironmentalReadingService {
 
     private final EnvironmentalReadingRepository readingRepository;
     private final DeviceService deviceService;
+    private final ApplicationEventPublisher eventPublisher;
 
-    public EnvironmentalReadingService(EnvironmentalReadingRepository readingRepository, DeviceService deviceService) {
+    public EnvironmentalReadingService(
+            EnvironmentalReadingRepository readingRepository,
+            DeviceService deviceService,
+            ApplicationEventPublisher eventPublisher
+    ) {
         this.readingRepository = readingRepository;
         this.deviceService = deviceService;
+        this.eventPublisher = eventPublisher;
     }
 
     @Transactional
     public ReadingResponse createReading(CreateReadingRequest request) {
+        if (request.messageId() != null) {
+            var existing = readingRepository.findByMessageId(request.messageId());
+            if (existing.isPresent()) {
+                return ReadingResponse.fromEntity(existing.get());
+            }
+        }
+
         Device device = deviceService.findOrCreateByCode(request.deviceCode());
 
         EnvironmentalReading reading = new EnvironmentalReading();
@@ -37,9 +51,12 @@ public class EnvironmentalReadingService {
         reading.setTemperatureC(request.temperatureC());
         reading.setHumidityPercent(request.humidityPercent());
         reading.setRecordedAt(request.recordedAt() != null ? request.recordedAt() : OffsetDateTime.now());
+        reading.setMessageId(request.messageId());
 
         EnvironmentalReading saved = readingRepository.save(reading);
-        return ReadingResponse.fromEntity(saved);
+        ReadingResponse response = ReadingResponse.fromEntity(saved);
+        eventPublisher.publishEvent(new ReadingCreatedEvent(response));
+        return response;
     }
 
     @Transactional(readOnly = true)

@@ -19,8 +19,8 @@ public class EnvironmentalCriteriaService {
                 TEMPERATURE_MAX_C,
                 HUMIDITY_MIN_PERCENT,
                 HUMIDITY_MAX_PERCENT,
-                "Temperatura agradável entre 20 e 30 °C, inclusive.",
-                "Umidade normal entre 40% e 70%, inclusive.",
+                "Temperatura agradável entre 20 e 30 °C.",
+                "Umidade normal entre 40% e 70%.",
                 "O ambiente é adequado quando temperatura e umidade estão simultaneamente dentro das faixas."
         );
     }
